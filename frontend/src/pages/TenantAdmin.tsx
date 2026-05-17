@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getSite, getQuestions, createQuestion, deleteQuestion } from '../services/api';
-import { Plus, Trash2, LogIn, X, Save, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
 
 const TenantAdmin = () => {
   const { username } = useParams();

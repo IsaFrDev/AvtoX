@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';

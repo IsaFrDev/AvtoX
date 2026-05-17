@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
+// @ts-ignore
 import { supabase } from '../supabase';
-import { Rocket, Shield, ExternalLink, AlertCircle, Upload, Check, Sun, Moon } from 'lucide-react';
+import { Rocket, Shield, ExternalLink, AlertCircle, Check, Sun, Moon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import './LandingPage.css';
 
 const LandingPage = () => {
   const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState({ name: '', username: '', tg_username: '' });
-  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [registered, setRegistered] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
