@@ -14,8 +14,8 @@ const TenantAdmin = () => {
 
   useEffect(() => {
     if (username) {
-      getSite(username).then(res => setSite(res.data));
-      getQuestions(username).then(res => setQuestions(res.data));
+      getSite(username).then((res: any) => setSite(res.data));
+      getQuestions(username).then((res: any) => setQuestions(res.data));
     }
   }, [username]);
 
@@ -28,7 +28,7 @@ const TenantAdmin = () => {
   const handleAdd = async () => {
     const payload = { site: site.id, text: { uz: newQ.text }, choices: { uz: newQ.choices }, correct_answer_index: newQ.correct };
     await createQuestion(payload);
-    getQuestions(username!).then(res => setQuestions(res.data));
+    getQuestions(username!).then((res: any) => setQuestions(res.data));
     setIsModalOpen(false);
     setNewQ({ text: '', choices: ['', '', '', ''], correct: 0 });
   };
@@ -69,7 +69,7 @@ const TenantAdmin = () => {
                   <span className="text-blue-500 font-black"># {i + 1}</span>
                   <p className="font-bold text-white">{q.text.uz || q.text}</p>
                </div>
-               <button onClick={async () => { await deleteQuestion(q.id); getQuestions(username!).then(res => setQuestions(res.data)); }} className="text-red-500 hover:bg-red-500/10 p-3 rounded-xl transition-all">
+               <button onClick={async () => { await deleteQuestion(q.id); getQuestions(username!).then((res: any) => setQuestions(res.data)); }} className="text-red-500 hover:bg-red-500/10 p-3 rounded-xl transition-all">
                   <Trash2 className="w-5 h-5" />
                </button>
             </div>
@@ -83,7 +83,7 @@ const TenantAdmin = () => {
             <h3 className="text-2xl font-black text-white">Yangi Savol</h3>
             <textarea className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white h-32 outline-none focus:border-blue-500" placeholder="Savol matni..." onChange={e => setNewQ({...newQ, text: e.target.value})} />
             <div className="grid gap-3">
-              {newQ.choices.map((c, i) => (
+              {newQ.choices.map((_c, i) => (
                 <div key={i} className="flex gap-2">
                   <input className={`flex-1 bg-slate-950 border rounded-xl p-4 text-white outline-none ${newQ.correct === i ? 'border-blue-500' : 'border-slate-800'}`} placeholder={`Variant ${i+1}`} onChange={e => {
                     const next = [...newQ.choices];

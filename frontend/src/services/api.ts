@@ -1,3 +1,4 @@
+// @ts-ignore
 import { supabase } from '../supabase';
 import axios from 'axios';
 
@@ -9,49 +10,52 @@ export const quizApi = {
     getTopics: async () => {
         const { data, error } = await supabase.from('topics').select('*, questions(id)').order('id');
         if (error) throw error;
-        return data.map(t => ({ ...t, title: t.title || t.name, questions_count: t.questions?.length || 0 }));
+        return data.map((t: any) => ({ ...t, title: t.title || t.name, questions_count: t.questions?.length || 0 }));
     },
-    getTopic: async (topicId) => {
+    getTopic: async (topicId: any) => {
         const { data, error } = await supabase.from('topics').select('*, questions(*)').eq('id', topicId).single();
         if (error) throw error;
         return { ...data, title: data.title || data.name, questions_count: data.questions?.length || 0 };
     },
-    getTopicQuestions: async (topicId) => {
+    getTopicQuestions: async (topicId: any) => {
         const { data, error } = await supabase.from('questions').select('*').eq('topic_id', topicId);
         if (error) throw error;
         return data;
     },
-    getTopicQuiz: async (topicId) => {
+    getTopicQuiz: async (topicId: any) => {
         const { data, error } = await supabase.from('questions').select('*').eq('topic_id', topicId);
         if (error) throw error;
         const shuffled = [...data].sort(() => 0.5 - Math.random());
-        return { questions: shuffled.slice(0, 20).map(q => ({ ...q, question_text: q.text.uz || q.text })) };
+        return { questions: shuffled.slice(0, 20).map((q: any) => ({ ...q, question_text: q.text.uz || q.text })) };
     },
     getQuestions: async () => {
         const { data, error } = await supabase.from('questions').select('*');
         if (error) throw error;
-        return data.map(q => ({ ...q, question_text: q.text.uz || q.text }));
+        return data.map((q: any) => ({ ...q, question_text: q.text.uz || q.text }));
     },
     getExamQuestions: async () => {
         const { data, error } = await supabase.from('questions').select('*');
         if (error) throw error;
         const shuffled = [...data].sort(() => 0.5 - Math.random());
-        return { questions: shuffled.slice(0, 20).map(q => ({ ...q, question_text: q.text.uz || q.text })) };
+        return { questions: shuffled.slice(0, 20).map((q: any) => ({ ...q, question_text: q.text.uz || q.text })) };
     },
-    createQuestion: async (data) => {
+    createQuestion: async (data: any) => {
         const { data: res, error } = await supabase.from('questions').insert(data);
         if (error) throw error;
         return res;
     },
-    deleteQuestion: async (id) => {
+    deleteQuestion: async (id: any) => {
         const { error } = await supabase.from('questions').delete().eq('id', id);
         if (error) throw error;
     }
 };
 
 // SaaS Functions
-export const registerSite = (data) => axios.post(`${API_URL}/register/`, data);
-export const getSite = (username) => axios.get(`${API_URL}/sites/${username}/`);
+export const registerSite = (data: any) => axios.post(`${API_URL}/register/`, data);
+export const getSite = (username: any) => axios.get(`${API_URL}/sites/${username}/`);
+export const getQuestions = (username: any) => axios.get(`${API_URL}/sites/${username}/questions/`);
+export const createQuestion = (data: any) => axios.post(`${API_URL}/questions/`, data);
+export const deleteQuestion = (id: any) => axios.delete(`${API_URL}/questions/${id}/`);
 
 const api = { get: () => {}, post: () => {} };
 export default api;

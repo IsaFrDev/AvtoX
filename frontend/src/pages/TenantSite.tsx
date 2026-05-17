@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getSite, getQuestions } from '../services/api';
 import { HelpCircle, CheckCircle2, XCircle } from 'lucide-react';
@@ -14,8 +14,8 @@ const TenantSite = () => {
 
   useEffect(() => {
     if (username) {
-      getSite(username).then(res => setSite(res.data)).catch(() => {});
-      getQuestions(username).then(res => setQuestions(res.data)).catch(() => {});
+      getSite(username).then((res: any) => setSite(res.data)).catch(() => {});
+      getQuestions(username).then((res: any) => setQuestions(res.data)).catch(() => {});
     }
   }, [username]);
 
