@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // @ts-ignore
 import { supabase } from '../supabase';
-import { Rocket, Shield, ExternalLink, AlertCircle, Check, Sun, Moon } from 'lucide-react';
+import { Shield, ExternalLink, AlertCircle, Check, Sun, Moon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import './LandingPage.css';
 
