@@ -1,0 +1,111 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+    Users, HelpCircle, Shield, Plus, Edit2, Trash2,
+    Search, X, Check, Save, Calendar, BookOpen, Clock, AlertTriangle, ChevronRight, Filter,
+    CheckCircle2, XCircle, MoreVertical, UserPlus, FileQuestion, RefreshCw, BarChart3, TrendingUp, Upload,
+    Download, FileJson, FileSpreadsheet, FileDown
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { supabase } from '../supabase';
+import { motion, AnimatePresence } from 'framer-motion';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+
+// ... (previous helper components like TabButton, thStyle, tdStyle, FormInput, FormTextarea, StatisticsView remain the same)
+
+const AdminPanel = () => {
+    const { t, i18n } = useTranslation();
+    const [activeTab, setActiveTab] = useState('users');
+    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState({ users: [], questions: [], topics: [] });
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState(null);
+
+    // --- EXPORT FUNCTION ---
+    const handleExport = (format) => {
+        const questions = data.questions.map(q => ({
+            "Savol": q.text?.uz || q.text,
+            "Mavzu": q.topic_name?.uz || q.topic_name || "Mavzusiz",
+            "Javoblar": (Array.isArray(q.choices?.uz || q.choices) ? (q.choices.uz || q.choices) : []).join(' | '),
+            "To'g'ri Javob (Indeks)": q.correct_answer_index
+        }));
+
+        if (format === 'json') {
+            const blob = new Blob([JSON.stringify(data.questions, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `savollar_${new Date().toLocaleDateString()}.json`;
+            a.click();
+        } else if (format === 'excel') {
+            const ws = XLSX.utils.json_to_sheet(questions);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Savollar");
+            XLSX.writeFile(wb, `savollar_${new Date().toLocaleDateString()}.xlsx`);
+        } else if (format === 'pdf') {
+            const doc = new jsPDF();
+            doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+            doc.setFont('Roboto');
+            doc.text("Savollar Ro'yxati", 14, 15);
+            const tableData = questions.map(q => [q.Savol, q.Mavzu, q.Togri_Javob]);
+            doc.autoTable({
+                startY: 20,
+                head: [["Savol", "Mavzu", "Index"]],
+                body: tableData,
+            });
+            doc.save(`savollar_${new Date().toLocaleDateString()}.pdf`);
+        }
+    };
+
+    // --- IMPORT FUNCTION ---
+    const handleImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                let importedQuestions = [];
+                if (file.name.endsWith('.json')) {
+                    importedQuestions = JSON.parse(evt.target.result);
+                } else {
+                    const bstr = evt.target.result;
+                    const wb = XLSX.read(bstr, { type: 'binary' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    importedQuestions = XLSX.utils.sheet_to_json(ws);
+                }
+
+                if (!Array.isArray(importedQuestions)) {
+                    alert("Noto'g'ri format! Massiv bo'lishi kerak.");
+                    return;
+                }
+
+                setLoading(true);
+                const payload = importedQuestions.map(q => ({
+                    text: { uz: q.Savol || q.text || "Yangi savol" },
+                    choices: { uz: (q.Javoblar || q.choices || "").split(' | ') },
+                    correct_answer_index: parseInt(q["To'g'ri Javob (Indeks)"] || q.correct_answer_index || 0),
+                    topic_id: data.topics[0]?.id // Har doim birinchi mavzuga biriktiramiz
+                }));
+
+                const { error } = await supabase.from('questions').insert(payload);
+                if (error) throw error;
+                
+                alert(`${payload.length} ta savol muvaffaqiyatli qo'shildi!`);
+                fetchData();
+            } catch (err) {
+                alert("Faylni o'qishda xatolik yuz berdi!");
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (file.name.endsWith('.json')) reader.readAsText(file);
+        else reader.readAsBinaryString(file);
+    };
+
+    // ... (rest of the fetchData and other functions remain identical)
+    // ...

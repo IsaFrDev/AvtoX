@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <link id="favicon" rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Platforma</title>
+    <meta name="description" content="Haydovchilik guvohnomasi imtihoniga tayyorgarlik platformasi" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#020617" />
+    <link id="apple-icon" rel="apple-touch-icon" href="/logo.png" />
+    
+    <script>
+      // Dynamically update icons based on current site
+      const username = window.location.pathname.split('/')[1];
+      if (username && username !== 'admin' && username !== '') {
+        fetch(`http://localhost:8000/api/sites/${username}/`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.logo) {
+              // Standard logo is usually absolute URL now
+              const logoUrl = data.logo.startsWith('http') ? data.logo : `http://localhost:8000${data.logo}`;
+              document.getElementById('favicon').href = logoUrl;
+              document.getElementById('apple-icon').href = logoUrl;
+            }
+            if (data.name) {
+              document.title = `${data.name} Platform`;
+            }
+          })
+          .catch(err => console.log("Header sync error"));
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

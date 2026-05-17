@@ -1,0 +1,132 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+    Download, Upload, FileJson, FileSpreadsheet, FileText, FileDown, 
+    Plus, Edit2, Trash2, Search, X, Check, Save, HelpCircle, BookOpen, 
+    RefreshCw, FileQuestion
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { supabase } from '../supabase';
+import { motion, AnimatePresence } from 'framer-motion';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+
+// ... (previous helper functions and components)
+
+const AdminPanel = () => {
+    const { t, i18n } = useTranslation();
+    const [activeTab, setActiveTab] = useState('users');
+    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState({ users: [], questions: [], topics: [] });
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // --- EXPORT LOGIC ---
+    const exportData = (format) => {
+        const questions = data.questions.map(q => ({
+            ID: q.id,
+            Savol: q.text?.uz || q.text,
+            Mavzu: q.topic_name?.uz || q.topic_name,
+            Javoblar: (q.choices?.uz || q.choices).join(' | '),
+            Togri_Javob: q.correct_answer_index
+        }));
+
+        if (format === 'json') {
+            const blob = new Blob([JSON.stringify(questions, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'savollar.json';
+            a.click();
+        } else if (format === 'excel') {
+            const ws = XLSX.utils.json_to_sheet(questions);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Savollar");
+            XLSX.writeFile(wb, "savollar.xlsx");
+        } else if (format === 'pdf') {
+            const doc = new jsPDF();
+            doc.text("Savollar Ro'yxati", 14, 15);
+            const tableData = questions.map(q => [q.Savol, q.Mavzu, q.Togri_Javob]);
+            doc.autoTable({
+                startY: 20,
+                head: [['Savol', 'Mavzu', 'Indeks']],
+                body: tableData,
+            });
+            doc.save('savollar.pdf');
+        }
+    };
+
+    // --- IMPORT LOGIC ---
+    const handleImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                let importedQuestions = [];
+                if (file.name.endsWith('.json')) {
+                    importedQuestions = JSON.parse(evt.target.result);
+                } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    const bstr = evt.target.result;
+                    const wb = XLSX.read(bstr, { type: 'binary' });
+                    const wsname = wb.SheetNames[0];
+                    const ws = wb.Sheets[wsname];
+                    importedQuestions = XLSX.utils.sheet_to_json(ws);
+                }
+
+                // Push to database
+                const payload = importedQuestions.map(q => ({
+                    text: { uz: q.Savol || q.text },
+                    choices: { uz: (q.Javoblar || q.choices).split(' | ') },
+                    correct_answer_index: q.Togri_Javob || q.correct_answer_index,
+                    topic_id: data.topics[0]?.id // Default topic
+                }));
+
+                const { error } = await supabase.from('questions').insert(payload);
+                if (error) throw error;
+                
+                alert(`${payload.length} ta savol muvaffaqiyatli import qilindi!`);
+                fetchData();
+            } catch (err) {
+                alert("Faylni o'qishda xatolik! Formatni tekshiring.");
+                console.error(err);
+            }
+        };
+
+        if (file.name.endsWith('.json')) {
+            reader.readAsText(file);
+        } else {
+            reader.readAsBinaryString(file);
+        }
+    };
+
+    // ... (rest of the component UI with new buttons)
+    
+    return (
+        <div className="admin-panel">
+            {/* Header with Export/Import buttons when in Questions tab */}
+            {activeTab === 'questions' && (
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <div className="import-btn" style={{ position: 'relative' }}>
+                        <input type="file" accept=".json,.xlsx,.xls" onChange={handleImport} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+                        <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '10px' }}>
+                            <Upload size={18} /> Import
+                        </button>
+                    </div>
+                    
+                    <button onClick={() => exportData('excel')} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '10px' }}>
+                        <FileSpreadsheet size={18} /> Excel
+                    </button>
+                    <button onClick={() => exportData('pdf')} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '10px' }}>
+                        <FileDown size={18} /> PDF
+                    </button>
+                    <button onClick={() => exportData('json')} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '10px' }}>
+                        <FileJson size={18} /> JSON
+                    </button>
+                </div>
+            )}
+            
+            {/* ... rest of the table ... */}
+        </div>
+    );
+};
