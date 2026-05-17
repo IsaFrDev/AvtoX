@@ -16,6 +16,7 @@ import SettingsPage from '../original/SettingsPage';
 import FAQPage from '../original/FAQPage';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../i18n';
+import InstallPWA from '../components/InstallPWA';
 
 const TenantContainer = () => {
   const { username } = useParams();
@@ -27,6 +28,7 @@ const TenantContainer = () => {
           <SettingsProvider>
             <ProgressProvider>
               <ThemeProvider>
+                <InstallPWA />
                 <Routes>
                   <Route path="/" element={<Layout><Dashboard /></Layout>} />
                   <Route path="/quiz" element={<Layout><QuizPage /></Layout>} />

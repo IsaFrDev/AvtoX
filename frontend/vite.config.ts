@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['logo.jpg', 'full-logo.jpg', 'favicon.svg'],
       manifest: {
         name: 'AvtoX Platform',
         short_name: 'AvtoX',
@@ -15,14 +15,15 @@ export default defineConfig({
         theme_color: '#020617',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'logo.jpg',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/jpeg',
+            purpose: 'any maskable'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'full-logo.jpg',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/jpeg'
           }
         ]
       }

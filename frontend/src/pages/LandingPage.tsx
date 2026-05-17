@@ -8,6 +8,7 @@ import './LandingPage.css';
 const LandingPage = () => {
   const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState({ name: '', username: '', tg_username: '' });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [registered, setRegistered] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,6 +39,21 @@ const LandingPage = () => {
         setLoading(false);
         return;
       }
+      
+      if (!logoFile) {
+        setErrorMsg("Iltimos, maktab logotipini yuklang.");
+        setLoading(false);
+        return;
+      }
+
+      // 1.5 Upload logo
+      const fileExt = logoFile.name.split('.').pop();
+      const fileName = `${formData.username}-${Math.random()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('store_logos').upload(fileName, logoFile);
+      if (uploadError) throw new Error("Logotip yuklanmadi. 'store_logos' nomli storage bucket yaratilganligiga ishonch hosil qiling.");
+      
+      const { data: { publicUrl } } = supabase.storage.from('store_logos').getPublicUrl(fileName);
+
 
       // 2. Insert into 'stores' table
       const { data, error } = await supabase
@@ -47,7 +63,7 @@ const LandingPage = () => {
           slug: formData.username,
           status: 'active',
           business_type: 'driving_school',
-          store_files: formData.tg_username ? { telegram: formData.tg_username } : {}
+          store_files: { ...(formData.tg_username ? { telegram: formData.tg_username } : {}), logo: publicUrl }
         }])
         .select()
         .single();
@@ -107,8 +123,13 @@ const LandingPage = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">{t('landing.tg_username')}</label>
+              <label className="form-label">{t('landing.tg_username')} (@ bilan)</label>
               <input className="form-input" placeholder="@user_name" onChange={e => setFormData({...formData, tg_username: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Maktab logotipi (Majburiy)</label>
+              <input type="file" accept="image/*" className="form-input" style={{padding: '0.5rem'}} onChange={e => setLogoFile(e.target.files?.[0] || null)} required />
             </div>
 
             <button type="submit" disabled={loading} className="submit-btn">

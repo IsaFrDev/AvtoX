@@ -51,11 +51,31 @@ export const quizApi = {
 };
 
 // SaaS Functions
-export const registerSite = (data: any) => axios.post(`${API_URL}/register/`, data);
-export const getSite = (username: any) => axios.get(`${API_URL}/sites/${username}/`);
-export const getQuestions = (username: any) => axios.get(`${API_URL}/sites/${username}/questions/`);
-export const createQuestion = (data: any) => axios.post(`${API_URL}/questions/`, data);
-export const deleteQuestion = (id: any) => axios.delete(`${API_URL}/questions/${id}/`);
+export const registerSite = (data: any) => supabase.from('stores').insert([data]);
+export const getSite = async (username: any) => {
+    const { data, error } = await supabase.from('stores').select('*').eq('slug', username).single();
+    if (error) throw error;
+    return { data };
+};
+export const getQuestions = async (username: any) => {
+    // First get the site id
+    const { data: site, error: siteError } = await supabase.from('stores').select('id').eq('slug', username).single();
+    if (siteError) throw siteError;
+    
+    // Then get questions for this site
+    const { data, error } = await supabase.from('questions').select('*').eq('site', site.id);
+    if (error) throw error;
+    return { data };
+};
+export const createQuestion = async (data: any) => {
+    const { data: res, error } = await supabase.from('questions').insert([data]);
+    if (error) throw error;
+    return res;
+};
+export const deleteQuestion = async (id: any) => {
+    const { error } = await supabase.from('questions').delete().eq('id', id);
+    if (error) throw error;
+};
 
 const api = { get: () => {}, post: () => {} };
 export default api;
