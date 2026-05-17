@@ -80,7 +80,9 @@ const LandingPage = () => {
 
       <div className="landing-card">
         <div className="landing-header">
-          <div className="landing-icon"><Rocket className="w-10 h-10 text-white" /></div>
+          <div className="landing-icon">
+             <img src="/full-logo.jpg" alt="AvtoX Logo" style={{ width: '120px', height: '120px', objectFit: 'contain', borderRadius: '24px', background: 'transparent' }} />
+          </div>
           <h1 className="landing-title">{t('landing.title')}</h1>
           <p className="landing-subtitle">{t('landing.subtitle')}</p>
         </div>
