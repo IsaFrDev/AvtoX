@@ -246,16 +246,29 @@ const AdminPanel = () => {
         e.preventDefault();
         try {
             if (activeTab === 'users' || activeTab === 'admins') {
-                if (userForm.password && userForm.password.length < 6) {
+                if (!userForm.password || userForm.password.length < 6) {
                     alert('Parol kamida 6 ta belgidan iborat bo\'lishi kerak!');
                     return;
                 }
 
                 // Add store slug prefix to username
-                const rawUsername = userForm.username.trim();
+                const rawUsername = userForm.username.trim().toLowerCase().replace(/\s+/g, '');
                 const prefixedUsername = rawUsername.startsWith(`${site.slug}_`)
                     ? rawUsername
                     : `${site.slug}_${rawUsername}`;
+
+                // Pre-check: username already exists? (prevents 409)
+                if (!editingItem) {
+                    const { data: existing } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .eq('username', prefixedUsername)
+                        .maybeSingle();
+                    if (existing) {
+                        alert(`Xatolik: "@${rawUsername}" username allaqachon band! Boshqa nom tanlang.`);
+                        return;
+                    }
+                }
 
                 const payload = {
                     first_name: userForm.first_name,
@@ -267,18 +280,18 @@ const AdminPanel = () => {
                 };
 
                 if (editingItem) {
-                    await supabase.from('profiles').update(payload).eq('id', editingItem.id);
+                    const { error } = await supabase.from('profiles').update(payload).eq('id', editingItem.id);
+                    if (error) throw error;
                 } else {
                     const { error } = await supabase.from('profiles').insert([{
                         ...payload,
                         id: crypto.randomUUID(),
                         role: userForm.is_staff ? 'admin' : 'user'
                     }]);
-
                     if (error) throw error;
 
                     setSuccessNotification({
-                        username: rawUsername, // Show clean username in success dialog
+                        username: rawUsername,
                         password: userForm.password,
                         first_name: userForm.first_name,
                         last_name: userForm.last_name,
@@ -299,13 +312,15 @@ const AdminPanel = () => {
                     choices: { uz: cleanChoices },
                     correct_answer_index: Math.min(questionForm.correct_answer_index, cleanChoices.length - 1),
                     category_id: questionForm.category_id || data.categories[0]?.id,
-                    image_url: questionForm.image_url,
+                    image_url: questionForm.image_url || null,
                     store_id: site.id
                 };
                 if (editingItem) {
-                    await supabase.from('questions').update(payload).eq('id', editingItem.id);
+                    const { error } = await supabase.from('questions').update(payload).eq('id', editingItem.id);
+                    if (error) throw error;
                 } else {
-                    await supabase.from('questions').insert([payload]);
+                    const { error } = await supabase.from('questions').insert([payload]);
+                    if (error) throw error;
                 }
             } else if (activeTab === 'topics') {
                 const payload = {
@@ -314,9 +329,11 @@ const AdminPanel = () => {
                     store_id: site.id
                 };
                 if (editingItem) {
-                    await supabase.from('categories').update(payload).eq('id', editingItem.id);
+                    const { error } = await supabase.from('categories').update(payload).eq('id', editingItem.id);
+                    if (error) throw error;
                 } else {
-                    await supabase.from('categories').insert([payload]);
+                    const { error } = await supabase.from('categories').insert([payload]);
+                    if (error) throw error;
                 }
             }
             resetFormStates();
@@ -324,10 +341,42 @@ const AdminPanel = () => {
             fetchData();
         } catch (error) {
             console.error('Save error details:', error);
-            if (error.code === '23505') {
-                alert('Xatolik: Bu foydalanuvchi nomi (username) allaqachon mavjud! Iltimos, boshqa nom tanlang.');
+            const code = error?.code;
+            const msg = error?.message || '';
+
+            if (code === '23505' || msg.includes('duplicate') || msg.includes('unique')) {
+                alert('Xatolik: Bu username allaqachon mavjud! Boshqa nom tanlang.');
+            } else if (error?.status === 401 || msg.includes('401') || msg.includes('JWT') || msg.includes('permission')) {
+                const sqlInstructions = `⚠️ Supabase RLS ruxsati yo'q!
+
+Supabase Dashboard → SQL Editor'ga o'ting va quyidagi SQL ni ishga tushiring:
+
+-- Questions jadvaliga yozish ruxsati
+CREATE POLICY "Allow anon insert questions"
+  ON questions FOR INSERT TO anon WITH CHECK (true);
+
+CREATE POLICY "Allow anon update questions"
+  ON questions FOR UPDATE TO anon USING (true);
+
+CREATE POLICY "Allow anon delete questions"
+  ON questions FOR DELETE TO anon USING (true);
+
+-- Categories jadvaliga yozish ruxsati
+CREATE POLICY "Allow anon insert categories"
+  ON categories FOR INSERT TO anon WITH CHECK (true);
+
+CREATE POLICY "Allow anon update categories"
+  ON categories FOR UPDATE TO anon USING (true);
+
+CREATE POLICY "Allow anon delete categories"
+  ON categories FOR DELETE TO anon USING (true);
+
+Keyin qayta urinib ko'ring.`;
+                alert(sqlInstructions);
+            } else if (code === '23503') {
+                alert('Xatolik: Mavzu (category) topilmadi. Avval mavzu qo\'shing.');
             } else {
-                alert('Saqlashda xatolik yuz berdi: ' + (error.message || 'Noma\'lum xato'));
+                alert('Saqlashda xatolik: ' + (msg || JSON.stringify(error)));
             }
         }
     };
