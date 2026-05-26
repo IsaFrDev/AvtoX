@@ -46,13 +46,26 @@ const LandingPage = () => {
         return;
       }
 
-      // 1.5 Upload logo
-      const fileExt = logoFile.name.split('.').pop();
-      const fileName = `${formData.username}-${Math.random()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('store_logos').upload(fileName, logoFile);
-      if (uploadError) throw new Error("Logotip yuklanmadi. 'store_logos' nomli storage bucket yaratilganligiga ishonch hosil qiling.");
-      
-      const { data: { publicUrl } } = supabase.storage.from('store_logos').getPublicUrl(fileName);
+      // 1.5 Upload logo (with Base64 fallback if storage bucket doesn't exist)
+      let publicUrl = '';
+      try {
+        const fileExt = logoFile.name.split('.').pop();
+        const fileName = `${formData.username}-${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('store_logos').upload(fileName, logoFile);
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl: url } } = supabase.storage.from('store_logos').getPublicUrl(fileName);
+        publicUrl = url;
+      } catch (uploadErr) {
+        console.warn("Storage upload failed, falling back to Base64:", uploadErr);
+        // Convert logo to Base64 Data URL as fallback
+        publicUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(logoFile);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = err => reject(err);
+        });
+      }
 
 
       // 2. Insert into 'stores' table
