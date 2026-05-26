@@ -1,0 +1,9 @@
+{
+  "name": "avtox",
+  "version": "1.0.0",
+  "description": "AvtoX multi-tenant driving school platform",
+  "scripts": {
+    "start": "node server.js",
+    "build": "cd frontend && npm install && npm run build"
+  }
+}
