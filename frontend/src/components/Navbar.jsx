@@ -60,68 +60,72 @@ const Navbar = () => {
                     <NavItem to={p('/profile')} icon={<User size={18} />} label="Profil" active={isActive('/profile')} />
                     <NavItem to={p('/settings')} icon={<Settings size={18} />} label="Sozlamalar" active={isActive('/settings')} />
                     <NavItem to={p('/faq')} icon={<HelpCircle size={18} />} label="Yordam" active={isActive('/faq')} />
-                    <NavItem to={p('/admin')} icon={<Shield size={18} />} label="Boshqaruv" active={isActive('/admin')} special />
+                    {(user?.is_admin || user?.is_staff) && (
+                        <NavItem to={p('/admin')} icon={<Shield size={18} />} label="Boshqaruv" active={isActive('/admin')} special />
+                    )}
                 </div>
-
-                <div className="desktop-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <button onClick={toggleTheme} className="theme-btn" style={{ width: '42px', height: '42px', borderRadius: '50%', border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                    </button>
-                    <button onClick={logout} className="logout-btn hide-mobile" style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', border: '1.5px solid #ef4444', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <LogOut size={18} /> <span>Chiqish</span>
-                    </button>
-                    <button onClick={() => setMobileMenuOpen(true)} className="mobile-menu-trigger show-mobile-only" style={{ width: '42px', height: '42px', borderRadius: '12px', border: 'none', background: '#6366f1', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Menu size={24} />
-                    </button>
-                </div>
-            </nav>
-            
-            <AnimatePresence>
-                {mobileMenuOpen && (
-                    <motion.div
-                        initial={{ x: '100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '100%' }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        style={{
-                            position: 'fixed', top: 0, right: 0, bottom: 0,
-                            width: 'min(320px, 85%)', background: 'var(--bg-secondary)',
-                            zIndex: 2000, boxShadow: '-10px 0 25px rgba(0,0,0,0.1)',
-                            display: 'flex', flexDirection: 'column', padding: '1.5rem',
-                            overflowY: 'auto'
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ 
-                                    width: '44px', height: '44px', borderRadius: '12px', 
-                                    overflow: 'hidden', background: 'white', 
-                                    border: '1px solid var(--border-primary)', padding: '2px',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                }}>
-                                    {logo ? (
-                                        <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                    ) : (
-                                        <Compass size={24} color="var(--primary)" />
-                                    )}
-                                </div>
-                                <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-                                    {siteInfo?.name || 'AvtoX'}
-                                </span>
-                            </div>
-                            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'var(--surface-solid)', width: '38px', height: '38px', borderRadius: '10px', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <X size={20} />
-                            </button>
-                        </div>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <MobileNavItem to={p('/')} icon={<LayoutDashboard size={20} />} label="Asosiy" onClick={() => setMobileMenuOpen(false)} color="#8b5cf6" />
-                            <MobileNavItem to={p('/stats')} icon={<BarChart3 size={20} />} label="Ballar" onClick={() => setMobileMenuOpen(false)} color="#f59e0b" />
-                            <MobileNavItem to={p('/profile')} icon={<User size={20} />} label="Profil" onClick={() => setMobileMenuOpen(false)} color="#3b82f6" />
-                            <MobileNavItem to={p('/settings')} icon={<Settings size={20} />} label="Sozlamalar" onClick={() => setMobileMenuOpen(false)} color="#10b981" />
-                            <MobileNavItem to={p('/faq')} icon={<HelpCircle size={20} />} label="Yordam" onClick={() => setMobileMenuOpen(false)} color="#64748b" />
-                            <MobileNavItem to={p('/admin')} icon={<Shield size={20} />} label="Boshqaruv" onClick={() => setMobileMenuOpen(false)} color="#6366f1" />
-                        </div>
+ 
+                 <div className="desktop-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                     <button onClick={toggleTheme} className="theme-btn" style={{ width: '42px', height: '42px', borderRadius: '50%', border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                     </button>
+                     <button onClick={logout} className="logout-btn hide-mobile" style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', border: '1.5px solid #ef4444', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                         <LogOut size={18} /> <span>Chiqish</span>
+                     </button>
+                     <button onClick={() => setMobileMenuOpen(true)} className="mobile-menu-trigger show-mobile-only" style={{ width: '42px', height: '42px', borderRadius: '12px', border: 'none', background: '#6366f1', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <Menu size={24} />
+                     </button>
+                 </div>
+             </nav>
+             
+             <AnimatePresence>
+                 {mobileMenuOpen && (
+                     <motion.div
+                         initial={{ x: '100%' }}
+                         animate={{ x: 0 }}
+                         exit={{ x: '100%' }}
+                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                         style={{
+                             position: 'fixed', top: 0, right: 0, bottom: 0,
+                             width: 'min(320px, 85%)', background: 'var(--bg-secondary)',
+                             zIndex: 2000, boxShadow: '-10px 0 25px rgba(0,0,0,0.1)',
+                             display: 'flex', flexDirection: 'column', padding: '1.5rem',
+                             overflowY: 'auto'
+                         }}
+                     >
+                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                 <div style={{ 
+                                     width: '44px', height: '44px', borderRadius: '12px', 
+                                     overflow: 'hidden', background: 'white', 
+                                     border: '1px solid var(--border-primary)', padding: '2px',
+                                     display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                 }}>
+                                     {logo ? (
+                                         <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                     ) : (
+                                         <Compass size={24} color="var(--primary)" />
+                                     )}
+                                 </div>
+                                 <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                                     {siteInfo?.name || 'AvtoX'}
+                                 </span>
+                             </div>
+                             <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'var(--surface-solid)', width: '38px', height: '38px', borderRadius: '10px', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                 <X size={20} />
+                             </button>
+                         </div>
+                         
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                             <MobileNavItem to={p('/')} icon={<LayoutDashboard size={20} />} label="Asosiy" onClick={() => setMobileMenuOpen(false)} color="#8b5cf6" />
+                             <MobileNavItem to={p('/stats')} icon={<BarChart3 size={20} />} label="Ballar" onClick={() => setMobileMenuOpen(false)} color="#f59e0b" />
+                             <MobileNavItem to={p('/profile')} icon={<User size={20} />} label="Profil" onClick={() => setMobileMenuOpen(false)} color="#3b82f6" />
+                             <MobileNavItem to={p('/settings')} icon={<Settings size={20} />} label="Sozlamalar" onClick={() => setMobileMenuOpen(false)} color="#10b981" />
+                             <MobileNavItem to={p('/faq')} icon={<HelpCircle size={20} />} label="Yordam" onClick={() => setMobileMenuOpen(false)} color="#64748b" />
+                             {(user?.is_admin || user?.is_staff) && (
+                                 <MobileNavItem to={p('/admin')} icon={<Shield size={20} />} label="Boshqaruv" onClick={() => setMobileMenuOpen(false)} color="#6366f1" />
+                             )}
+                         </div>
 
                         <div style={{ marginTop: 'auto', paddingTop: '2rem', borderTop: '1px solid var(--border-primary)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <button onClick={toggleTheme} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem', borderRadius: '16px', border: 'none', background: 'var(--surface-solid)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 700, fontSize: '1.1rem', boxShadow: 'var(--shadow-sm)' }}>

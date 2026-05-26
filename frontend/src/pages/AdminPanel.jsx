@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase';
-import api from '../services/api';
+import { useSite } from '../context/SiteContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Chart as ChartJS,
@@ -20,7 +20,7 @@ import {
     PointElement,
     LineElement
 } from 'chart.js';
-import { Bar, Pie, Line, Doughnut } from 'react-chartjs-2';
+import { Bar, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(
     CategoryScale,
@@ -43,12 +43,12 @@ const getTrans = (val, lang) => {
 
 const AdminPanel = () => {
     const { t, i18n } = useTranslation();
+    const site = useSite();
+
     const getImageUrl = (url) => {
         if (!url) return null;
 
-        // Supabase storage URL fix
         if (url.includes('supabase.co')) {
-            // Agar protocol yo'q bo'lsa
             if (!url.startsWith('http')) {
                 return `https://${url}`;
             }
@@ -70,12 +70,12 @@ const AdminPanel = () => {
 
     const [activeTab, setActiveTab] = useState('users');
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState({ users: [], questions: [], topics: [] });
+    const [data, setData] = useState({ users: [], questions: [], categories: [] });
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [successNotification, setSuccessNotification] = useState(null);
-    const [editLang, setEditLang] = useState('uz'); // Modalda qaysi tilni tahrirlash
+    const [editLang, setEditLang] = useState('uz');
     const [copied, setCopied] = useState(false);
 
     // Form States
@@ -93,13 +93,13 @@ const AdminPanel = () => {
         text: '',
         choices: ['', '', '', ''],
         correct_answer_index: 0,
-        topic: '',
+        category_id: '',
         image_url: ''
     });
 
-    const [topicForm, setTopicForm] = useState({
+    const [categoryForm, setCategoryForm] = useState({
         name: '',
-        description: ''
+        slug: ''
     });
 
     // Helper: Normalize translation
@@ -113,7 +113,6 @@ const AdminPanel = () => {
     const normalizeChoices = (choices) => {
         if (!choices) return ['', '', '', ''];
         if (Array.isArray(choices)) return choices;
-        // Search for choices in object if it comes from JSONB
         const found = choices.uz || choices.ru || choices.en || Object.values(choices)[0];
         if (Array.isArray(found)) return found;
         return ['', '', '', ''];
@@ -121,47 +120,50 @@ const AdminPanel = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [site]);
 
     const fetchData = async () => {
+        if (!site?.id) return;
         setLoading(true);
         try {
-            const [usersRes, questionsRes, topicsRes] = await Promise.all([
-                supabase.from('profiles').select('*'),
-                supabase.from('questions').select('*, topic:topics(name)'),
-                supabase.from('topics').select('*, questions(count)')
-            ]);
-
-            // Transform topics to include question count if needed, 
-            // though supabase select 'questions(count)' returns array of objects.
-            // Better to just fetch simple and maybe map.
-            // Simplified fetch:
-
+            // Fetch all profiles (since no store_id column exists on profiles table)
             const { data: users, error: usersError } = await supabase.from('profiles').select('*');
-            const { data: questions, error: questionsError } = await supabase.from('questions').select('*, topic:topics(name)');
-            const { data: topics, error: topicsError } = await supabase.from('topics').select('*');
+            
+            // Fetch questions and categories filtered by store_id
+            const { data: questions, error: questionsError } = await supabase
+                .from('questions')
+                .select('*, categories(name)')
+                .eq('store_id', site.id);
+                
+            const { data: categories, error: catsError } = await supabase
+                .from('categories')
+                .select('*')
+                .eq('store_id', site.id);
 
             if (usersError) console.error("Users fetch error:", usersError);
             if (questionsError) console.error("Questions fetch error:", questionsError);
-            if (topicsError) console.error("Topics fetch error:", topicsError);
+            if (catsError) console.error("Categories fetch error:", catsError);
 
-            // For topic question counts, we can do a separate query or handle it in UI.
-            // Let's iterate topics to get counts.
-            const topicsWithCount = topics ? await Promise.all(topics.map(async (topic) => {
-                const { count } = await supabase
-                    .from('questions')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('topic_id', topic.id);
-                return { ...topic, questions: { length: count } };
-            })) : [];
+            // Filter users by store slug prefix for multi-tenant isolation
+            const filteredUsers = (users || []).filter(u => {
+                if (u.username?.startsWith(`${site.slug}_`)) return true;
+                if (u.username && !u.username.includes('_')) return true; // Legacy fallback
+                return false;
+            });
+
+            // Map categories with count of questions belonging to it
+            const categoriesWithCount = categories ? categories.map(cat => {
+                const count = (questions || []).filter(q => q.category_id === cat.id).length;
+                return { ...cat, questions: { length: count } };
+            }) : [];
 
             setData({
-                users: users || [],
+                users: filteredUsers,
                 questions: questions?.map(q => ({
                     ...q,
-                    topic_name: q.topic?.name // Endi q.topic?.name bu JSONB obyekt
+                    category_name: q.categories?.name
                 })) || [],
-                topics: topicsWithCount || []
+                categories: categoriesWithCount
             });
         } catch (error) {
             console.error('Failed to fetch admin data', error);
@@ -184,8 +186,14 @@ const AdminPanel = () => {
         setEditingItem(item);
         if (item) {
             if (activeTab === 'users' || activeTab === 'admins') {
+                // Strip prefix from username for displaying in form input
+                const cleanUsername = item.username && item.username.startsWith(`${site.slug}_`)
+                    ? item.username.slice(site.slug.length + 1)
+                    : item.username || '';
+
                 setUserForm({
                     ...item,
+                    username: cleanUsername,
                     password: item.password || '',
                     limit_date: item.limit_date ? item.limit_date.split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
                 });
@@ -194,19 +202,19 @@ const AdminPanel = () => {
                     ...item,
                     text: normalizeTrans(item.text),
                     choices: normalizeChoices(item.choices),
-                    topic: item.topic_id || data.topics[0]?.id
+                    category_id: item.category_id || data.categories[0]?.id
                 });
             } else {
-                setTopicForm({
+                setCategoryForm({
                     ...item,
                     name: normalizeTrans(item.name),
-                    description: normalizeTrans(item.description)
+                    slug: item.slug || ''
                 });
             }
         } else {
             resetFormStates();
         }
-        setEditLang('uz'); // Reset language to UZ when opening
+        setEditLang('uz');
         setIsModalOpen(true);
     };
 
@@ -225,12 +233,12 @@ const AdminPanel = () => {
             text: '',
             choices: ['', '', '', ''],
             correct_answer_index: 0,
-            topic: data.topics[0]?.id || '',
+            category_id: data.categories[0]?.id || '',
             image_url: ''
         });
-        setTopicForm({
+        setCategoryForm({
             name: '',
-            description: ''
+            slug: ''
         });
     };
 
@@ -238,19 +246,22 @@ const AdminPanel = () => {
         e.preventDefault();
         try {
             if (activeTab === 'users' || activeTab === 'admins') {
-                // Update profile only (cannot easily update auth user password via client without admin key)
-                // For now, allow updating profile fields like limit_date.
-
-                // VALIDATION: Password length
                 if (userForm.password && userForm.password.length < 6) {
                     alert('Parol kamida 6 ta belgidan iborat bo\'lishi kerak!');
                     return;
                 }
+
+                // Add store slug prefix to username
+                const rawUsername = userForm.username.trim();
+                const prefixedUsername = rawUsername.startsWith(`${site.slug}_`)
+                    ? rawUsername
+                    : `${site.slug}_${rawUsername}`;
+
                 const payload = {
                     first_name: userForm.first_name,
                     last_name: userForm.last_name,
-                    username: userForm.username,
-                    password: userForm.password, // Maxsus Auth (Custom) uchun
+                    username: prefixedUsername,
+                    password: userForm.password,
                     limit_date: userForm.limit_date,
                     is_admin: userForm.is_staff
                 };
@@ -258,21 +269,16 @@ const AdminPanel = () => {
                 if (editingItem) {
                     await supabase.from('profiles').update(payload).eq('id', editingItem.id);
                 } else {
-                    // Yangi user yaratish (Profiles ga yozish)
-                    // Eslatma: Bu user login qila olmaydi (Auth user yo'q), lekin ro'yxatda turadi.
-                    // Login qilishi uchun Sign Up qilish kerak.
-                    // Biz shunchaki "qo'lda" qo'shilgan user sifatida saqlaymiz.
                     const { error } = await supabase.from('profiles').insert([{
                         ...payload,
-                        id: crypto.randomUUID(), // Fake ID generatsiya qilamiz
+                        id: crypto.randomUUID(),
                         role: userForm.is_staff ? 'admin' : 'user'
                     }]);
 
                     if (error) throw error;
 
-                    // Show success notification with user details
                     setSuccessNotification({
-                        username: userForm.username,
+                        username: rawUsername, // Show clean username in success dialog
                         password: userForm.password,
                         first_name: userForm.first_name,
                         last_name: userForm.last_name,
@@ -281,10 +287,8 @@ const AdminPanel = () => {
                     });
                 }
             } else if (activeTab === 'questions') {
-                // Filter out empty choices as requested: "hamma javobni yozish shart emas"
                 const cleanChoices = questionForm.choices.filter(c => c && c.trim() !== '');
 
-                // Ensure at least 2 choices exist for a valid question
                 if (cleanChoices.length < 2) {
                     alert('Kamida 2 ta javob varianti bo\'lishi kerak!');
                     return;
@@ -294,8 +298,9 @@ const AdminPanel = () => {
                     text: { uz: questionForm.text },
                     choices: { uz: cleanChoices },
                     correct_answer_index: Math.min(questionForm.correct_answer_index, cleanChoices.length - 1),
-                    topic_id: questionForm.topic,
-                    image_url: questionForm.image_url
+                    category_id: questionForm.category_id || data.categories[0]?.id,
+                    image_url: questionForm.image_url,
+                    store_id: site.id
                 };
                 if (editingItem) {
                     await supabase.from('questions').update(payload).eq('id', editingItem.id);
@@ -304,13 +309,14 @@ const AdminPanel = () => {
                 }
             } else if (activeTab === 'topics') {
                 const payload = {
-                    name: { uz: topicForm.name },
-                    description: { uz: topicForm.description }
+                    name: { uz: categoryForm.name },
+                    slug: categoryForm.slug || categoryForm.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
+                    store_id: site.id
                 };
                 if (editingItem) {
-                    await supabase.from('topics').update(payload).eq('id', editingItem.id);
+                    await supabase.from('categories').update(payload).eq('id', editingItem.id);
                 } else {
-                    await supabase.from('topics').insert([payload]);
+                    await supabase.from('categories').insert([payload]);
                 }
             }
             resetFormStates();
@@ -326,7 +332,6 @@ const AdminPanel = () => {
         }
     };
 
-    // Modals
     const [deleteModal, setDeleteModal] = useState({ open: false, type: null, id: null });
 
     const handleDeleteClick = (type, id) => {
@@ -353,18 +358,14 @@ const AdminPanel = () => {
                 .from('quiz_images')
                 .getPublicUrl(filePath);
 
-            console.log('Original Public URL:', publicUrl);
-
-            // Fix URL protocol if missing
             let finalUrl = publicUrl;
             if (!finalUrl.startsWith('http')) {
                 finalUrl = `https://${finalUrl}`;
             }
 
-            console.log('Final URL to save:', finalUrl);
             setQuestionForm({ ...questionForm, image_url: finalUrl });
         } catch (error) {
-            console.error('Litsenziya rasmini yuklashda xatolik:', error);
+            console.error('Rasm yuklashda xatolik:', error);
             if (error.message?.includes('Bucket not found')) {
                 alert('Xatolik: Supabase-da "quiz_images" papkasi (bucket) yaratilmagan. Iltimos, Supabase Dashboard-ga kiring va "quiz_images" nomli yangi Storage Bucket yarating (Public qilib).');
             } else {
@@ -378,17 +379,16 @@ const AdminPanel = () => {
     const confirmDelete = async () => {
         const { type, id } = deleteModal;
         try {
-            // Agar mavzu o'chirilsa, avval unga tegishli savollarni o'chiramiz (Manual Cascade Delete)
             if (type === 'topics') {
                 const { error: questionsError } = await supabase
                     .from('questions')
                     .delete()
-                    .eq('topic_id', id);
+                    .eq('category_id', id);
 
                 if (questionsError) throw questionsError;
             }
 
-            const table = type === 'users' ? 'profiles' : (type === 'questions' ? 'questions' : 'topics');
+            const table = type === 'users' ? 'profiles' : (type === 'questions' ? 'questions' : 'categories');
             const { error } = await supabase.from(table).delete().eq('id', id);
 
             if (error) throw error;
@@ -428,18 +428,18 @@ const AdminPanel = () => {
             );
         } else if (activeTab === 'admins') {
             return data.users.filter(u =>
-                u.is_staff && (u.username.toLowerCase().includes(term) ||
+                u.is_admin && (u.username?.toLowerCase().includes(term) ||
                     (u.first_name + ' ' + u.last_name).toLowerCase().includes(term))
             );
         } else if (activeTab === 'questions') {
             return data.questions.filter(q =>
                 (normalizeTrans(q.text).toLowerCase().includes(term)) ||
-                (q.topic_name?.toLowerCase().includes(term))
+                (q.category_name?.toLowerCase().includes(term))
             );
         } else if (activeTab === 'topics') {
-            return data.topics.filter(topic =>
-                (normalizeTrans(topic.name).toLowerCase().includes(term)) ||
-                (normalizeTrans(topic.description).toLowerCase().includes(term))
+            return data.categories.filter(cat =>
+                (normalizeTrans(cat.name).toLowerCase().includes(term)) ||
+                (cat.slug?.toLowerCase().includes(term))
             );
         }
         return [];
@@ -531,8 +531,8 @@ const AdminPanel = () => {
                     border: '1px solid var(--border-primary)',
                     overflowX: 'auto',
                     whiteSpace: 'nowrap',
-                    scrollbarWidth: 'none', // Firefox
-                    msOverflowStyle: 'none' // IE/Edge
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none'
                 }}>
                     <style>{`
                         .admin-panel div::-webkit-scrollbar { display: none; }
@@ -542,7 +542,7 @@ const AdminPanel = () => {
                         onClick={() => setActiveTab('users')}
                         icon={<Users size={18} />}
                         label={t('admin.tabs.users')}
-                        count={data.users.filter(u => !u.is_staff).length}
+                        count={data.users.filter(u => !u.is_admin).length}
                     />
                     <TabButton
                         active={activeTab === 'questions'}
@@ -556,7 +556,7 @@ const AdminPanel = () => {
                         onClick={() => setActiveTab('topics')}
                         icon={<BookOpen size={18} />}
                         label={t('admin.tabs.topics')}
-                        count={data.topics.length}
+                        count={data.categories.length}
                     />
                     <TabButton
                         active={activeTab === 'statistics'}
@@ -569,7 +569,7 @@ const AdminPanel = () => {
                         onClick={() => setActiveTab('admins')}
                         icon={<Shield size={18} />}
                         label={t('admin.tabs.admins')}
-                        count={data.users.filter(u => u.is_staff).length}
+                        count={data.users.filter(u => u.is_admin).length}
                     />
                 </div>
 
@@ -657,7 +657,7 @@ const AdminPanel = () => {
                                     ) : (
                                         <>
                                             <th style={thStyle}>{t('admin.table.topic_name')}</th>
-                                            <th style={thStyle}>{t('admin.table.description')}</th>
+                                            <th style={thStyle}>Slug</th>
                                             <th style={thStyle}>{t('admin.table.questions_count')}</th>
                                             <th style={{ ...thStyle, textAlign: 'right' }}>{t('admin.table.actions')}</th>
                                         </>
@@ -666,7 +666,7 @@ const AdminPanel = () => {
                             </thead>
                             <tbody>
                                 <AnimatePresence mode="popLayout">
-                                    {filteredData().map((item, idx) => (
+                                    {filteredData().map((item) => (
                                         <motion.tr
                                             key={item.id}
                                             initial={{ opacity: 0 }}
@@ -684,14 +684,20 @@ const AdminPanel = () => {
                                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                 color: 'white', fontWeight: 800
                                                             }}>
-                                                                {item.profile_picture ? <img src={getImageUrl(item.profile_picture)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }} /> : (item.username?.[0] || 'U').toUpperCase()}
+                                                                {(item.username?.[0] || 'U').toUpperCase()}
                                                             </div>
                                                             <div>
                                                                 <div style={{ fontWeight: 700 }}>{item.first_name} {item.last_name}</div>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td style={tdStyle}><code>@{item.username}</code></td>
+                                                    <td style={tdStyle}>
+                                                        <code>
+                                                            {item.username && item.username.startsWith(`${site.slug}_`)
+                                                                ? `@${item.username.slice(site.slug.length + 1)}`
+                                                                : `@${item.username}`}
+                                                        </code>
+                                                    </td>
                                                     <td style={tdStyle}>
                                                         <code>{item.password || '—'}</code>
                                                     </td>
@@ -715,7 +721,7 @@ const AdminPanel = () => {
                                                         <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getTrans(item.text, i18n.language)}</div>
                                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{t('dashboard.variants_count', { count: item.choices ? (Array.isArray(item.choices) ? item.choices.length : (item.choices.uz?.length || 0)) : 0 })}</div>
                                                     </td>
-                                                    <td style={tdStyle}><span style={{ padding: '0.2rem 0.6rem', background: 'var(--bg-secondary)', borderRadius: '6px', fontSize: '0.75rem' }}>{getTrans(item.topic_name, i18n.language)}</span></td>
+                                                    <td style={tdStyle}><span style={{ padding: '0.2rem 0.6rem', background: 'var(--bg-secondary)', borderRadius: '6px', fontSize: '0.75rem' }}>{getTrans(item.category_name, i18n.language)}</span></td>
                                                     <td style={tdStyle}>
                                                         {item.image_url ? (
                                                             <div style={{ width: '36px', height: '36px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-primary)' }}>
@@ -733,7 +739,7 @@ const AdminPanel = () => {
                                             ) : (
                                                 <>
                                                     <td style={tdStyle}><div style={{ fontWeight: 700 }}>{getTrans(item.name, i18n.language)}</div></td>
-                                                    <td style={tdStyle}><div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{getTrans(item.description, i18n.language) || '—'}</div></td>
+                                                    <td style={tdStyle}><div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}><code>{item.slug}</code></div></td>
                                                     <td style={tdStyle}>{item.questions?.length || 0} ta</td>
                                                     <td style={{ ...tdStyle, textAlign: 'right' }}>
                                                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -791,7 +797,7 @@ const AdminPanel = () => {
                                                             newChoices[i] = v;
                                                             setQuestionForm({ ...questionForm, choices: newChoices });
                                                         }}
-                                                        required={false} // "hamma javobni yozish shart emas"
+                                                        required={false}
                                                     />
                                                     {questionForm.choices.length > 2 && (
                                                         <button
@@ -858,8 +864,8 @@ const AdminPanel = () => {
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                                 <label style={{ fontSize: '0.875rem', fontWeight: 700 }}>{t('admin.table.topic')}</label>
-                                                <select value={questionForm.topic} onChange={e => setQuestionForm({ ...questionForm, topic: e.target.value })} style={inputStyle}>
-                                                    {data.topics.map(topic => <option key={topic.id} value={topic.id}>{getTrans(topic.name)}</option>)}
+                                                <select value={questionForm.category_id} onChange={e => setQuestionForm({ ...questionForm, category_id: e.target.value })} style={inputStyle}>
+                                                    {data.categories.map(cat => <option key={cat.id} value={cat.id}>{getTrans(cat.name)}</option>)}
                                                 </select>
                                             </div>
                                         </div>
@@ -900,12 +906,12 @@ const AdminPanel = () => {
                                     </>
                                 ) : (
                                     <>
-                                        <FormInput label={t('admin.table.topic_name')} value={topicForm.name} onChange={v => setTopicForm({ ...topicForm, name: v })} required />
-                                        <FormTextarea label={t('admin.table.description')} value={topicForm.description} onChange={v => setTopicForm({ ...topicForm, description: v })} />
+                                        <FormInput label={t('admin.table.topic_name')} value={categoryForm.name} onChange={v => setCategoryForm({ ...categoryForm, name: v })} required />
+                                        <FormInput label="Slug (URL)" value={categoryForm.slug} onChange={v => setCategoryForm({ ...categoryForm, slug: v.toLowerCase().replace(/[^a-z0-9]/g, '-') })} required={false} placeholder="masalan: yo-l-belgilari (bo'sh qolsa avtomatik yaratiladi)" />
                                     </>
                                 )}
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                    <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-primary)', background: 'none' }}>{t('common.cancel')}</button>
+                                    <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}>{t('common.cancel')}</button>
                                     <button type="submit" className="btn-primary" style={{ flex: 2, padding: '0.75rem', borderRadius: '12px' }}>{t('common.save')}</button>
                                 </div>
                             </form>
@@ -1003,7 +1009,7 @@ const AdminPanel = () => {
                                     style={{
                                         flex: 1, padding: '0.875rem', borderRadius: '12px',
                                         border: '1px solid var(--border-primary)',
-                                        background: 'none', cursor: 'pointer', fontWeight: 600
+                                        background: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600
                                     }}
                                 >
                                     {t('common.cancel')}
@@ -1027,7 +1033,7 @@ const AdminPanel = () => {
                                 {t('admin.delete.msg')}
                             </p>
                             <div style={{ display: 'flex', gap: '1rem' }}>
-                                <button onClick={() => setDeleteModal({ open: false, type: null, id: null })} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontWeight: 600 }}>{t('common.cancel')}</button>
+                                <button onClick={() => setDeleteModal({ open: false, type: null, id: null })} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}>{t('common.cancel')}</button>
                                 <button onClick={confirmDelete} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: 'none', background: 'var(--error)', color: 'white', cursor: 'pointer', fontWeight: 600 }}>{t('stats.reset_confirm_title_short') || t('admin.table.actions')}</button>
                             </div>
                         </motion.div>
@@ -1090,18 +1096,18 @@ const StatisticsView = ({ data }) => {
         return { active: activeUsers, expired: expiredUsers };
     }, [data.users]);
 
-    const topicQuestionsData = useMemo(() => {
+    const categoryQuestionsData = useMemo(() => {
         return {
-            labels: data.topics.map(topic => getTrans(topic.name, i18n.language)),
+            labels: data.categories.map(cat => getTrans(cat.name, i18n.language)),
             datasets: [{
                 label: t('admin.stats_view.questions_count'),
-                data: data.topics.map(topic => topic.questions?.length || 0),
+                data: data.categories.map(cat => cat.questions?.length || 0),
                 backgroundColor: 'rgba(99, 102, 241, 0.6)',
                 borderColor: 'rgba(99, 102, 241, 1)',
                 borderWidth: 2
             }]
         };
-    }, [data.topics]);
+    }, [data.categories]);
 
     const userStatusData = {
         labels: [t('admin.stats_view.active_label'), t('admin.stats_view.expired_label')],
@@ -1170,7 +1176,7 @@ const StatisticsView = ({ data }) => {
                     padding: '2rem',
                     boxShadow: 'var(--shadow-xl)'
                 }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-primary)' }}>
                         <Users size={24} style={{ color: 'var(--primary)' }} />
                         {t('admin.stats_view.user_status_title')}
                     </h3>
@@ -1186,7 +1192,7 @@ const StatisticsView = ({ data }) => {
                     padding: '2rem',
                     boxShadow: 'var(--shadow-xl)'
                 }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-primary)' }}>
                         <TrendingUp size={24} style={{ color: 'var(--secondary)' }} />
                         {t('admin.stats_view.overall_title')}
                     </h3>
@@ -1220,7 +1226,7 @@ const StatisticsView = ({ data }) => {
                             border: '1px solid var(--border-primary)'
                         }}>
                             <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--success)', marginBottom: '0.5rem' }}>
-                                {data.topics.length}
+                                {data.categories.length}
                             </div>
                             <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.stats_view.total_topics')}</div>
                         </div>
@@ -1235,12 +1241,12 @@ const StatisticsView = ({ data }) => {
                 padding: '2rem',
                 boxShadow: 'var(--shadow-xl)'
             }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-primary)' }}>
                     <BarChart3 size={24} style={{ color: 'var(--primary)' }} />
                     {t('admin.stats_view.chart_title')}
                 </h3>
                 <div style={{ height: '400px' }}>
-                    <Bar data={topicQuestionsData} options={chartOptions} />
+                    <Bar data={categoryQuestionsData} options={chartOptions} />
                 </div>
             </div>
         </div>

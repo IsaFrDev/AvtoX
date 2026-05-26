@@ -10,7 +10,7 @@ import Layout from '../components/Layout';
 import Dashboard from '../original/Dashboard';
 import QuizPage from '../original/QuizPage';
 import ProfilePage from '../original/ProfilePage';
-import AdminPanel from '../original/AdminPanel';
+import AdminPanel from '../pages/AdminPanel';
 import StatsPage from '../original/StatsPage';
 import SettingsPage from '../original/SettingsPage';
 import FAQPage from '../original/FAQPage';

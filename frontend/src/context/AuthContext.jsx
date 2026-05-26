@@ -81,14 +81,37 @@ export const AuthProvider = ({ children }) => {
         try {
             const loginInput = email.includes('@') ? email.split('@')[0] : email;
 
-            const { data: userProfile, error: profileError } = await supabase
+            // Extract tenant store slug from URL (window.location.pathname)
+            const pathParts = window.location.pathname.split('/');
+            const slug = pathParts[1]; // e.g. "lider"
+
+            let loginUsername = loginInput;
+            if (slug && !loginInput.startsWith(`${slug}_`)) {
+                loginUsername = `${slug}_${loginInput}`;
+            }
+
+            // Try prefixed login first
+            let { data: userProfile, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('username', loginInput)
+                .eq('username', loginUsername)
                 .eq('password', password)
                 .maybeSingle();
 
             if (profileError) throw profileError;
+
+            // Fallback to raw login if prefixed profile not found
+            if (!userProfile && loginUsername !== loginInput) {
+                const { data: fallbackProfile, error: fallbackError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('username', loginInput)
+                    .eq('password', password)
+                    .maybeSingle();
+
+                if (fallbackError) throw fallbackError;
+                userProfile = fallbackProfile;
+            }
 
             if (userProfile) {
                 if (userProfile.limit_date && new Date() > new Date(userProfile.limit_date)) {
