@@ -16,18 +16,15 @@ export const AuthProvider = ({ children }) => {
             return;
         }
 
-        // 2. Check Real Supabase Session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                fetchProfile(session.user);
-            } else {
-                setLoading(false);
-            }
-        });
+        let isFetching = false;
 
+        // 2. Check Real Supabase Session — onAuthStateChange also fires for initial session
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session) {
-                fetchProfile(session.user);
+                if (!isFetching) {
+                    isFetching = true;
+                    fetchProfile(session.user).finally(() => { isFetching = false; });
+                }
             } else {
                 if (!localStorage.getItem('local_admin_session')) {
                     setUser(null);

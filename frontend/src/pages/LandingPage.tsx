@@ -156,11 +156,11 @@ const LandingPage = () => {
             <p style={{fontSize: '14px', color: '#64748b', marginBottom: '24px'}}>{t('landing.success_desc')}</p>
             
             <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-              <a href={`/${registered.slug}`} style={{display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--lp-input-bg)', borderRadius: '16px', textDecoration: 'none', color: 'var(--lp-text)', border: '1px solid var(--lp-input-border)'}}>
+              <a href={`/${registered.slug}`} target="_blank" rel="noopener noreferrer" style={{display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--lp-input-bg)', borderRadius: '16px', textDecoration: 'none', color: 'var(--lp-text)', border: '1px solid var(--lp-input-border)'}}>
                 <span style={{fontWeight: 'bold'}}>{t('landing.view_site')}</span>
                 <ExternalLink size={18} color="#3b82f6" />
               </a>
-              <a href={`/${registered.slug}/admin`} style={{display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--lp-input-bg)', borderRadius: '16px', textDecoration: 'none', color: '#3b82f6', border: '1px solid var(--lp-input-border)'}}>
+              <a href={`/${registered.slug}/admin`} target="_blank" rel="noopener noreferrer" style={{display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--lp-input-bg)', borderRadius: '16px', textDecoration: 'none', color: '#3b82f6', border: '1px solid var(--lp-input-border)'}}>
                 <span style={{fontWeight: 'bold'}}>{t('landing.admin_panel')}</span>
                 <Shield size={18} />
               </a>

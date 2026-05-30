@@ -9,6 +9,14 @@ export default defineConfig({
       injectRegister: 'auto',
       registerType: 'autoUpdate',
       includeAssets: ['logo.jpg', 'favicon.jpg'],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+      },
       manifest: {
         name: 'AvtoX Platform',
         short_name: 'AvtoX',
