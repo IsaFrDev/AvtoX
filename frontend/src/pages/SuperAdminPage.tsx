@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 import {
   Shield, Plus, Pencil, Trash2, ExternalLink, Search,
-  LogOut, Building2, Users, BookOpen, CheckCircle, Clock,
+  LogOut, Building2, CheckCircle, Clock,
   X, Save, Eye, EyeOff, AlertTriangle,
 } from 'lucide-react';
 
