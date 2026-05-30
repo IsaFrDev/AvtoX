@@ -318,7 +318,8 @@ const TopicCard = ({ topic, index, isCompleted }) => {
     const count = topic.questions?.length || 0;
 
     return (
-        <div
+        <Link
+            to={`/quiz?topicId=${topic.id}`}
             className="topic-card"
             style={{
                 background: '#fff',
@@ -331,6 +332,7 @@ const TopicCard = ({ topic, index, isCompleted }) => {
                 boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
                 transition: 'transform 0.18s ease, box-shadow 0.18s ease',
                 cursor: 'pointer',
+                textDecoration: 'none',
             }}
             onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-5px)';
@@ -390,24 +392,17 @@ const TopicCard = ({ topic, index, isCompleted }) => {
 
                 {/* Footer */}
                 <div style={{ marginTop: 'auto' }}>
-                    <Link
-                        to={`/quiz?topicId=${topic.id}`}
-                        style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '0.75rem 1rem',
-                            borderRadius: '12px',
-                            background: isCompleted ? 'rgba(16,185,129,0.08)' : color.light,
-                            color: isCompleted ? '#10b981' : color.bg,
-                            fontSize: '0.875rem', fontWeight: 700,
-                            textDecoration: 'none',
-                            transition: 'opacity 0.15s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                    >
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '12px',
+                        background: isCompleted ? 'rgba(16,185,129,0.08)' : color.light,
+                        color: isCompleted ? '#10b981' : color.bg,
+                        fontSize: '0.875rem', fontWeight: 700,
+                    }}>
                         <span>{t('dashboard.start_quiz')}</span>
                         <ArrowRight size={16} />
-                    </Link>
+                    </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.25rem', display: 'none' }}>
@@ -419,7 +414,7 @@ const TopicCard = ({ topic, index, isCompleted }) => {
                     ))}
                 </div>
             </div>
-        </div>
+        </Link>
     );
 };
 
