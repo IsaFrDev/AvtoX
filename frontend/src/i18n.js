@@ -39,6 +39,7 @@ const resources = {
         "welcome": "Salom, {{name}}! 👋", "subtitle": "Haydovchilik guvohnomasi imtihoniga tayyorgarlik",
         "start_practice": "Mashq boshlash", "practice_desc": "Mavzular bo'yicha mashq qiling",
         "start_exam": "Imtihon boshlash", "exam_desc": "Haqiqiy imtihon muhitini his eting",
+        "start_quiz": "Boshlash",
         "variants_count": "{{count}} ta variant", "questions_count": "{{count}} ta savol",
         "stat_topics": "Mavzular", "stat_questions": "Savollar", "stat_completed": "Tugallangan", "stat_avg_time": "O'rtacha vaqt",
         "select_topic": "Mavzuni tanlang", "no_topics": "Mavzular topilmadi"
