@@ -129,11 +129,10 @@ const AdminPanel = () => {
             // Fetch all profiles (since no store_id column exists on profiles table)
             const { data: users, error: usersError } = await supabase.from('profiles').select('*');
             
-            // Fetch questions filtered by site column (matches api.ts and TenantAdmin)
             const { data: questions, error: questionsError } = await supabase
                 .from('questions')
                 .select('*, categories(name)')
-                .eq('site', site.id);
+                .eq('store_id', site.id);
                 
             const { data: categories, error: catsError } = await supabase
                 .from('categories')
@@ -313,7 +312,7 @@ const AdminPanel = () => {
                     correct_answer_index: Math.min(questionForm.correct_answer_index, cleanChoices.length - 1),
                     category_id: questionForm.category_id || data.categories[0]?.id || null,
                     image_url: questionForm.image_url || null,
-                    site: site.id
+                    store_id: site.id
                 };
                 if (editingItem) {
                     const { error } = await supabase.from('questions').update(payload).eq('id', editingItem.id);

@@ -58,8 +58,7 @@ export const getQuestions = async (username: any) => {
     const { data: site, error: siteError } = await supabase.from('stores').select('id').eq('slug', username).single();
     if (siteError) throw siteError;
     
-    // Then get questions for this site
-    const { data, error } = await supabase.from('questions').select('*').eq('site', site.id);
+    const { data, error } = await supabase.from('questions').select('*').eq('store_id', site.id);
     if (error) throw error;
     return { data };
 };

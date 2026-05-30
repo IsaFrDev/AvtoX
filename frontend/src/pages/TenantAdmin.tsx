@@ -27,7 +27,7 @@ const TenantAdmin = () => {
 
   const handleAdd = async () => {
     const payload = {
-      site: site.id,
+      store_id: site.id,
       text: { uz: newQ.text },
       choices: { uz: newQ.choices },
       correct_answer_index: newQ.correct,
