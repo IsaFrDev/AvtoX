@@ -26,7 +26,8 @@ const resources = {
         "accuracy": "Aniqlik", "current_streak": "Hozirgi rekord", "best_streak": "Eng yaxshi rekord",
         "results": "Natijalar", "total_time": "Jami sarflangan vaqt", "seconds": "soniya",
         "current_level": "Hozirgi daraja", "levels": "Darajalar tizimi", "points": "ball",
-        "reset_stats": "Statistikani tozalash"
+        "reset_stats": "Statistikani tozalash",
+        "reset_confirm_title_short": "O'chirish"
       },
       "profile": {
         "title": "Foydalanuvchi profili", "subtitle": "Shaxsiy ma'lumotlar",
