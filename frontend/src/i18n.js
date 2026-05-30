@@ -72,6 +72,12 @@ const resources = {
             "user_status_title": "Foydalanuvchilar statusi", "overall_title": "Umumiy statistika",
             "total_users": "Jami foydalanuvchilar", "total_questions": "Jami savollar", "total_topics": "Jami mavzular", 
             "chart_title": "Savollar taqsimoti", "active_label": "Faol", "expired_label": "Muddati o'tgan", "questions_count": "Savollar soni"
+        },
+        "success": {
+            "added": "Foydalanuvchi qo'shildi!",
+            "copy_hint": "Ustiga bosib nusxa oling",
+            "copied": "Nusxa olindi!",
+            "copy_btn": "Nusxa olish"
         }
       },
       "settings": {
