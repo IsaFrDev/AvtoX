@@ -301,100 +301,120 @@ const StatCard = ({ icon, label, value, color, bg }) => (
     </motion.div>
 );
 
+const CARD_COLORS = [
+    { bg: '#6366f1', light: 'rgba(99,102,241,0.08)' },
+    { bg: '#8b5cf6', light: 'rgba(139,92,246,0.08)' },
+    { bg: '#ec4899', light: 'rgba(236,72,153,0.08)' },
+    { bg: '#f59e0b', light: 'rgba(245,158,11,0.08)' },
+    { bg: '#10b981', light: 'rgba(16,185,129,0.08)' },
+    { bg: '#3b82f6', light: 'rgba(59,130,246,0.08)' },
+    { bg: '#ef4444', light: 'rgba(239,68,68,0.08)' },
+    { bg: '#14b8a6', light: 'rgba(20,184,166,0.08)' },
+];
+
 const TopicCard = ({ topic, index, isCompleted }) => {
     const { t, i18n } = useTranslation();
+    const color = CARD_COLORS[index % CARD_COLORS.length];
+    const count = topic.questions?.length || 0;
+
     return (
         <div
             className="topic-card"
             style={{
-                background: 'var(--surface)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 'var(--radius-xl)',
+                background: '#fff',
+                border: '1.5px solid #e8eaf0',
+                borderRadius: '20px',
                 overflow: 'hidden',
-                padding: '1.75rem',
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '1.25rem',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+                transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                cursor: 'pointer',
             }}
             onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-xl)';
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.13)';
             }}
             onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.07)';
             }}
         >
-            {isCompleted && (
-                <div style={{
-                    position: 'absolute',
-                    top: '1.25rem',
-                    right: '1.25rem',
-                    color: 'var(--success)'
-                }}>
-                    <CheckCircle size={24} fill="currentColor" fillOpacity={0.15} />
-                </div>
-            )}
+            {/* Color accent strip */}
+            <div style={{ height: '5px', background: isCompleted ? '#10b981' : color.bg, flexShrink: 0 }} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--bg-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 800,
-                    fontSize: '1.25rem',
-                    color: 'var(--primary)',
-                    border: '1px solid var(--border-primary)',
-                    flexShrink: 0
-                }}>
-                    {index + 1}
-                </div>
-                <div style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-                        {getTrans(topic.name, i18n.language)}
-                    </h3>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase' }}>
-                        {t('dashboard.questions_count', { count: topic.questions?.length || 0 })}
-                    </span>
-                </div>
-            </div>
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
+                {/* Header row */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                    {/* Number badge */}
+                    <div style={{
+                        width: '44px', height: '44px', borderRadius: '12px',
+                        background: isCompleted ? 'rgba(16,185,129,0.1)' : color.light,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 900, fontSize: '1.1rem',
+                        color: isCompleted ? '#10b981' : color.bg,
+                        flexShrink: 0,
+                    }}>
+                        {isCompleted ? <CheckCircle size={22} /> : index + 1}
+                    </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <Link
-                    to={`/quiz?topicId=${topic.id}`}
-                    style={{
-                        padding: '0.6rem 1.25rem',
-                        borderRadius: 'var(--radius-md)',
-                        background: isCompleted ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)',
-                        color: isCompleted ? 'var(--success)' : 'var(--text-primary)',
-                        fontSize: '0.875rem',
-                        fontWeight: 700,
-                        textDecoration: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.2s ease'
-                    }}
-                >
-                    <span>{t('dashboard.start_quiz')}</span>
-                    <ArrowRight size={16} />
-                </Link>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{
+                            fontSize: '1rem', fontWeight: 800,
+                            color: '#1e293b', lineHeight: 1.35,
+                            marginBottom: '0.3rem',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                        }}>
+                            {getTrans(topic.name, i18n.language)}
+                        </h3>
+                        <span style={{
+                            fontSize: '0.72rem', fontWeight: 700,
+                            color: isCompleted ? '#10b981' : '#94a3b8',
+                            textTransform: 'uppercase', letterSpacing: '0.05em'
+                        }}>
+                            {count} TA SAVOL
+                        </span>
+                    </div>
+                </div>
 
-                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                {/* Progress bar */}
+                <div style={{ height: '5px', background: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
+                    <div style={{
+                        height: '100%', borderRadius: '99px',
+                        background: isCompleted ? '#10b981' : color.bg,
+                        width: isCompleted ? '100%' : count > 0 ? '30%' : '0%',
+                        transition: 'width 0.4s ease'
+                    }} />
+                </div>
+
+                {/* Footer */}
+                <div style={{ marginTop: 'auto' }}>
+                    <Link
+                        to={`/quiz?topicId=${topic.id}`}
+                        style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '12px',
+                            background: isCompleted ? 'rgba(16,185,129,0.08)' : color.light,
+                            color: isCompleted ? '#10b981' : color.bg,
+                            fontSize: '0.875rem', fontWeight: 700,
+                            textDecoration: 'none',
+                            transition: 'opacity 0.15s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    >
+                        <span>{t('dashboard.start_quiz')}</span>
+                        <ArrowRight size={16} />
+                    </Link>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.25rem', display: 'none' }}>
                     {[1, 2, 3].map(i => (
                         <div key={i} style={{
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            background: isCompleted ? 'var(--success)' : 'var(--border-secondary)',
-                            opacity: 0.5
+                            width: '6px', height: '6px', borderRadius: '50%',
+                            background: isCompleted ? '#10b981' : '#e2e8f0',
                         }} />
                     ))}
                 </div>
