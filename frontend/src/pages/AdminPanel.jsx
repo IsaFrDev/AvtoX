@@ -285,7 +285,6 @@ const AdminPanel = () => {
                 } else {
                     const { error } = await supabase.from('profiles').insert([{
                         ...payload,
-                        id: crypto.randomUUID(),
                         role: userForm.is_staff ? 'admin' : 'user'
                     }]);
                     if (error) throw error;
@@ -374,7 +373,13 @@ CREATE POLICY "Allow anon delete categories"
 Keyin qayta urinib ko'ring.`;
                 alert(sqlInstructions);
             } else if (code === '23503') {
-                alert('Xatolik: Mavzu (category) topilmadi. Avval mavzu qo\'shing.');
+                const details = error?.details || '';
+                const isProfilesFk = details.includes('users') || (error?.message || '').includes('profiles_id_fkey');
+                if (isProfilesFk) {
+                    alert(`⚠️ Supabase ma'lumotlar bazasida cheklov bor!\n\nSupabase Dashboard → SQL Editor ga o'ting va quyidagini bajaring:\n\nALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;\n\nKeyin qayta urinib ko'ring.`);
+                } else {
+                    alert('Xatolik: Mavzu (category) topilmadi. Avval "Mavzular" bo\'limidan mavzu qo\'shing.');
+                }
             } else {
                 alert('Saqlashda xatolik: ' + (msg || JSON.stringify(error)));
             }
