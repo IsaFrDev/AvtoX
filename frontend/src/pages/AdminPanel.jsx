@@ -285,6 +285,7 @@ const AdminPanel = () => {
                 } else {
                     const { error } = await supabase.from('profiles').insert([{
                         ...payload,
+                        id: crypto.randomUUID(),
                         role: userForm.is_staff ? 'admin' : 'user'
                     }]);
                     if (error) throw error;
@@ -310,7 +311,7 @@ const AdminPanel = () => {
                     text: { uz: questionForm.text },
                     choices: { uz: cleanChoices },
                     correct_answer_index: Math.min(questionForm.correct_answer_index, cleanChoices.length - 1),
-                    category_id: questionForm.category_id || data.categories[0]?.id,
+                    category_id: questionForm.category_id || data.categories[0]?.id || null,
                     image_url: questionForm.image_url || null,
                     store_id: site.id
                 };
