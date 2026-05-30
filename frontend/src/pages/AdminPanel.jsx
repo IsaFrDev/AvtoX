@@ -318,8 +318,18 @@ const AdminPanel = () => {
                     const { error } = await supabase.from('questions').update(payload).eq('id', editingItem.id);
                     if (error) throw error;
                 } else {
-                    const { error } = await supabase.from('questions').insert([payload]);
+                    const { data: inserted, error } = await supabase
+                        .from('questions').insert([payload]).select();
                     if (error) throw error;
+                    if (!inserted || inserted.length === 0) {
+                        throw Object.assign(new Error(
+                            "Savol bazaga yozildi lekin o'qib bo'lmadi. Supabase SQL Editor'da quyidagini bajaring:\n\n" +
+                            "DROP POLICY IF EXISTS \"anon_select_questions\" ON questions;\n" +
+                            "CREATE POLICY \"anon_select_questions\" ON questions FOR SELECT TO anon USING (true);\n\n" +
+                            "DROP POLICY IF EXISTS \"anon_select_categories\" ON categories;\n" +
+                            "CREATE POLICY \"anon_select_categories\" ON categories FOR SELECT TO anon USING (true);"
+                        ), { code: 'RLS_SELECT' });
+                    }
                 }
             } else if (activeTab === 'topics') {
                 const payload = {
